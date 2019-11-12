@@ -38,7 +38,7 @@
 \begin{figure}[t]
 	\centering
     % \vspace{-0.1cm} 
-    \setlength{\abovecaptionskip}{0cm} 
+    % \setlength{\abovecaptionskip}{0cm} 
     % \setlength{\belowcaptionskip}{-0.6cm} 
 	\includegraphics[width=0.99\linewidth]{fig/instructions.png}
 	\caption{Original and Virtual-Instruction ISA.}
@@ -133,7 +133,7 @@ Virtual LOAD instructions also need to restore the intermediate results from par
     % \flushleft
     \centering
     % \vspace{-0.1cm} 
-    \setlength{\abovecaptionskip}{0cm} 
+    % \setlength{\abovecaptionskip}{0cm} 
     % \setlength{\belowcaptionskip}{-0.05cm} 
 	\includegraphics[width=0.99\textwidth]{fig/singlesave.pdf} 	
     \caption{
@@ -181,8 +181,8 @@ In order to minimize the cost of interrupt, we make the CNN interruptible after 
 \begin{figure}[t]
 	\centering
     % \vspace{-0.1cm} 
-    \setlength{\abovecaptionskip}{0cm} 
-    \setlength{\belowcaptionskip}{-0.4cm} 
+    % \setlength{\abovecaptionskip}{0cm} 
+    % \setlength{\belowcaptionskip}{-0.4cm} 
 	\includegraphics[width=0.99\linewidth]{fig/iau.pdf}
 	\caption{Hardware architecture of IAU. 
 	% The software on the CPU (PS side) communicates with IAU to access the CNN accelerator. IAU records the running state of each task. At runtime, IAU translates the input instruction sequence with virtual instructions to a normal sequence of instructions. IAU also modifies the normal SAVE instruction after interrupt occurs with the same SaveID, to avoid duplicate output data transfer. 
@@ -192,7 +192,7 @@ In order to minimize the cost of interrupt, we make the CNN interruptible after 
 \begin{figure*}[t]
 	\centering
     % \vspace{-0.1cm} 
-    \setlength{\abovecaptionskip}{0cm} 
+    % \setlength{\abovecaptionskip}{0cm} 
     % \setlength{\belowcaptionskip}{-0.05cm} 
 	\includegraphics[width=0.99\linewidth]{fig/interexample.pdf}
 	\caption{ A simple example of our proposed virtual-instruction-based interrupt. }
@@ -254,7 +254,7 @@ t_{1\_VI} = N_{pulse\_VI} \times t_{pulse}(W)
 	\caption{ Waiting time for finishing the current operation ($t_1$) in an example convolution layer. Compared with the Layer-By-Layer method, the waiting time of our Virtual-Instruction method is reduced to $1.6\%$ in this example. The reduction in latency is related to the height ($H$) of the input featuremaps.  }
 \end{figure*}
 
-Because our Virtual-Instruction method only interrupts the execution after CALC\_F and SAVE, there is no extra data transfer for the intermediate results. The backup operation in Virtual-Instruction method only transfers the final results, which are also transfered to DDR with the SAVE instructions in the Layer-By-Layer method. Experiment results shows that, the data transfer time for the final results is much less than the calculation time, in both Layer-By-Layer method and Virtual-Instruction method. Thus the latency to respond the interrupt request ($t_{latency}$) is mainly determined by the time of finishing current operation.
+Because our Virtual-Instruction method only interrupts the execution after CALC\_F and SAVE, there is no extra data transfer for the intermediate results. The backup operation in Virtual-Instruction method only transfers the final results, which are also transfered to DDR with the SAVE instructions in the Layer-By-Layer method. Experiment results shows that, the data transfer time for the final results is much less than the calculation time (less than 20\%), in both Layer-By-Layer method and Virtual-Instruction method. Thus the latency to respond the interrupt request ($t_{latency}$) is mainly determined by the time of finishing current operation.
 
 As the interrupt request is unpredictable, we model the interrupt location as evenly distributed within each layer. Thus the average interrupt latency is $\bar{t}_{latency} $.
 
@@ -262,11 +262,11 @@ As the interrupt request is unpredictable, we model the interrupt location as ev
 	\bar{t}_{latency}  \simeq \frac{1}{2} \times t_{1}
 \end{equation}
 
-Compared with the Layer-By-Layer method, the latency of our method is reduced to $Rate_l$.
+Compared with the Layer-By-Layer method, the latency of our method is reduced to $R_l$.
 
 \begin{equation}
 	\begin{split}
-	Rate_l & =  \frac{\bar{t}_{latency\_VI}}{\bar{t}_{latency\_layer}} \simeq \frac{\frac{1}{2} \times t_{1\_VI}}{\frac{1}{2} \times t_{1\_layer}}  = \frac{ N_{pulse\_VI} \times t_{pulse}(W) }{ N_{pulse} \times t_{pulse}(W) }  \\
+	R_l & =  \frac{\bar{t}_{latency\_VI}}{\bar{t}_{latency\_layer}} \simeq \frac{\frac{1}{2} \times t_{1\_VI}}{\frac{1}{2} \times t_{1\_layer}}  = \frac{ N_{pulse\_VI} \times t_{pulse}(W) }{ N_{pulse} \times t_{pulse}(W) }  \\
 		   & = \frac{ N_{pulse\_VI} }{N_{pulse} } = \frac{ Ch_{in} \times Para_{out} \times Para_{height}  }{  Ch_{in} \times Ch_{out} \times H } \\
 		   & = \frac{ Para_{out} \times Para_{height} }{ Ch_{out} \times H} 
 	\end{split}

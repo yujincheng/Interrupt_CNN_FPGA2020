@@ -1,6 +1,8 @@
 \label{sec:conclusion}
 
 In this paper, we propose an interruptible CNN accelerator and a deployment framework, INCAME, for multi-robot exploration. 
-With the help of virtual-instruction-based interrupt method, the CNN accelerator can switch between different CNN tasks with low interrupt response latency and low extra cost. Therefore, the independent software in ROS can access the accelerator without hardware resources conflicts, so that the ROS-based MR-Exploration can achieve real-time performance on embedded FPGA. In the future, more robotic algorithms, such as DOpt, Exploration and Navigation, can be implemented on hardware and included in INCAME, to gain a better energy efficiency and achieve better real-time performance.
+With the help of virtual-instruction-based interrupt method, the CNN accelerator can switch between different CNN tasks with low interrupt response latency and low extra cost. Note that the development of CPU task scheduling evolved from single-core multi-tasking to multi-core multi-tasking. Similarly, INCAME currently focuses on interrupt support for single-core multi-tasking. We plan to investigate the multi-core multi-tasking for CNN accelerators as part of the future work.
+INCAME only needs to modify the instruction fetch module to IAU in hardware. Thus, it is easy to extend to handle other instruction-driven accelerators.
+Therefore, the independent software in ROS can access the accelerator without hardware resources conflicts, so that the ROS-based MR-Exploration can achieve real-time performance on embedded FPGA. In the future, more robotic algorithms, such as DOpt, Exploration and Navigation, can be implemented on hardware and included in INCAME, to gain a better energy efficiency and achieve better real-time performance.
 
 % asWith the help of the virtual-instruction based method,
