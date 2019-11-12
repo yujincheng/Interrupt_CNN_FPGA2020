@@ -236,10 +236,6 @@ On the other hand, if the execution of the CNN accelerator can be interrupted af
 t_{1\_VI} = N_{pulse\_VI} \times t_{pulse}(W)
 \end{equation}
 
-Besides waiting for finishing the current operations, the Virtual-Instruction method should also backup the intermediate results before responding to interrupt request.
-
-
-
 \begin{figure*}[htbp]
 	\centering
 	\subfigure[ $t_1$ for Layer-By-Layer method. ]{ \label{fig:t1all}
@@ -254,13 +250,31 @@ Besides waiting for finishing the current operations, the Virtual-Instruction me
 	\includegraphics[width=0.99\linewidth]{fig/t1after.pdf}
 		\end{minipage}%
 	}
+	\label{fig:t1example}
 	\caption{ Waiting time for finishing the current operation ($t_1$) in an example convolution layer. Compared with the Layer-By-Layer method, the waiting time of our Virtual-Instruction method is reduced to $1.6\%$ in this example. The reduction in latency is related to the height ($H$) of the input featuremaps.  }
 \end{figure*}
 
+Because our Virtual-Instruction method only interrupts the execution after CALC\_F and SAVE, there is no extra data transfer for the intermediate results. The backup operation in Virtual-Instruction method only transfers the final results, which are also transfered to DDR with the SAVE instructions in the Layer-By-Layer method. Experiment results shows that, the data transfer time for the final results is much less than the calculation time, in both Layer-By-Layer method and Virtual-Instruction method. Thus the latency to respond the interrupt request ($t_{latency}$) is mainly determined by the time of finishing current operation.
 
+As the interrupt request is unpredictable, we model the interrupt location as evenly distributed within each layer. Thus the average interrupt latency is $\bar{t}_{latency} $.
 
+\begin{equation}
+	\bar{t}_{latency}  \simeq \frac{1}{2} \times t_{1}
+\end{equation}
 
+Compared with the Layer-By-Layer method, the latency of our method is reduced to $Rate_l$.
 
+\begin{equation}
+	\begin{split}
+	Rate_l & =  \frac{\bar{t}_{latency\_VI}}{\bar{t}_{latency\_layer}} \simeq \frac{\frac{1}{2} \times t_{1\_VI}}{\frac{1}{2} \times t_{1\_layer}}  = \frac{ N_{pulse\_VI} \times t_{pulse}(W) }{ N_{pulse} \times t_{pulse}(W) }  \\
+		   & = \frac{ N_{pulse\_VI} }{N_{pulse} } = \frac{ Ch_{in} \times Para_{out} \times Para_{height}  }{  Ch_{in} \times Ch_{out} \times H } \\
+		   & = \frac{ Para_{out} \times Para_{height} }{ Ch_{out} \times H} 
+	\end{split}
+\end{equation}
+
+$\bar{t}_{latency\_VI}$ and $\bar{t}_{latency\_VI}$ are the average interrupt latency of the Virtual-Instruction method and the Layer—By-Layer method. The effect of latency reduction of the VI method is related to the number of output channels ($Ch_{out}$) and featuremap height ($H$). The larger the featuremaps output channels and the height, the better  latency reduction result can be achieved.
+
+An example of a convolution layer with a typical size in CNN is given in \Cref{fig:t1example}. The parameters are labeled in the figures. The latency can be reduced to $1.6\%$.
 
 
 \subsection{Virtual Instruction ISA (VI-ISA) }
