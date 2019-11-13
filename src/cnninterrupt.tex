@@ -45,7 +45,7 @@
 	\label{fig:instructions}
 \end{figure}
 
-In this section, we introduce our \textbf{virtual-instruction-based} method to enable accelerator interrupt. Compared with the CPU-Like and Layer-by-Layer interrupt method, virtual-instruction-based method minimizes the interrupt response latency and the extra cost of interrupt.
+In this section, we introduce our \textbf{virtual-instruction-based} method (VI method) to enable accelerator interrupt. Compared with the CPU-Like and Layer-by-Layer interrupt method, virtual-instruction-based method minimizes the interrupt response latency and the extra cost of interrupt.
 % In this section, we introduce our virtual-instruction-based method to enable accelerator interrupt. To minimize the interrupt response latency and extra cost for interrupt, we propose the virtual-instruction-based accelerator interrupt method.
 
 \subsection{ Instruction Driven Accelerator }
@@ -176,67 +176,7 @@ In order to minimize the cost of interrupt, we make the CNN interruptible after 
 % Additional virtual instructions also take up bandwidth at instruction fetching phase, even if they are not executed. The instruction number of CALC\_I is tens of times of that of SAVE/CALC\_F. If the network can be interrupted after each CALC\_I, the rapidly increasing virtual instructions reduce the system performance.
 
 
-
-
-\begin{figure}[t]
-	\centering
-    % \vspace{-0.1cm} 
-    % \setlength{\abovecaptionskip}{0cm} 
-    % \setlength{\belowcaptionskip}{-0.4cm} 
-	\includegraphics[width=0.99\linewidth]{fig/iau.pdf}
-	\caption{Hardware architecture of IAU. 
-	% The software on the CPU (PS side) communicates with IAU to access the CNN accelerator. IAU records the running state of each task. At runtime, IAU translates the input instruction sequence with virtual instructions to a normal sequence of instructions. IAU also modifies the normal SAVE instruction after interrupt occurs with the same SaveID, to avoid duplicate output data transfer. 
-	}
-	\label{fig:IAU}
-\end{figure}
 \begin{figure*}[t]
-	\centering
-    % \vspace{-0.1cm} 
-    % \setlength{\abovecaptionskip}{0cm} 
-    % \setlength{\belowcaptionskip}{-0.05cm} 
-	\includegraphics[width=0.99\linewidth]{fig/interexample.pdf}
-	\caption{ A simple example of our proposed virtual-instruction-based interrupt. }
-	\label{fig:interexample}
-\end{figure*}
-
-
-\subsection {Latency/Cost Analysis}
-
-In this subsection, we quantitatively analyze the impact of interruptible position on latency and cost. 
-As introduced in \Cref{sec:instrAcc}, ach CALC  instruction processes the convolution according to the hardware parallelism with $Para_{height}$ lines from $ Para_{in} $ input channels to $ Para_{out}$ output channels. 
-We here note the computation of a CALC instruction an $instruction pulse$, or $pulse$.
-The compuataion time of each pulse is related by the hardware architecture and the width of the convolution layer. The larger the width, the larger the workload of a single calculation instruction, and thus the CALC instruction consumes more time. We note the time consumption of a pulse as a function of the width of the featuremaps, $t_{pulse}$:
-
-\begin{equation}
-	t_{pulse}(W) = t_{Calc\_Hardware} \times W
-\end{equation}
-
-$t_{Calc\_Hardware}$ indicates the time for hardware to produce the intermediate results of one pixel, which is defined by the hardware design and the clock frequency. $W$ is the width of the featuremaps, indicating the workload of the instruction.
-
-\Cref{fig:t1all} shows the worst case of waiting for finishing current operation of the Layer-By-Layer interrupt method. The worst case is that the interrupt request occurs at the beginning of the layer. At this case, the accelerator will wait untill finishing the whole layer. The calculation of the whole layer consists of $N_{pulse\_layer}$ successive CALC instructions. We note the worst time of waiting for finish the current layer, which is the total time of these pulses, as $t_{1\_layer}$.
-
-\begin{equation}
-	N_{pulse\_layer} = \frac{ Ch_{in} \times Ch_{out} \times H }{ (Para_{in} \times Para_{out} \times Para_{height}) } 
-\end{equation}
-
-\begin{equation}
-t_{1\_layer} = N_{pulse} \times t_{pulse}(W)
-\end{equation}
-
-$Ch_{in}$ and $Ch_{in}$ is the number input channels and output channels. $H$ is the height of featuremaps.
-
-On the other hand, if the execution of the CNN accelerator can be interrupted after SAVE/CALC\_F instructions, the worst case of waiting for finish current operation is illustrated in \Cref{fig:t1after}. The calculation of the whole CalcBlob consists of $N_{pulse\_VI}$ successive CALC instructions. We note the worst waiting time in this case as $t_{1\_VI}$.
-
-
-\begin{equation}
-	N_{pulse\_VI} = \frac{ Ch_{in} \times Para_{out} \times Para_{height} }{ (Para_{in} \times Para_{out} \times Para_{height}) } 
-\end{equation}
-
-\begin{equation}
-t_{1\_VI} = N_{pulse\_VI} \times t_{pulse}(W)
-\end{equation}
-
-\begin{figure*}[htbp]
 	\centering
 	\subfigure[ $t_1$ for Layer-By-Layer method. ]{ \label{fig:t1all}
 		\begin{minipage}[t]{0.45\linewidth}
@@ -254,7 +194,45 @@ t_{1\_VI} = N_{pulse\_VI} \times t_{pulse}(W)
 	\caption{ Waiting time for finishing the current operation ($t_1$) in an example convolution layer. Compared with the Layer-By-Layer method, the waiting time of our Virtual-Instruction method is reduced to $1.6\%$ in this example. The reduction in latency is related to the height ($H$) of the input featuremaps.  }
 \end{figure*}
 
-Because our Virtual-Instruction method only interrupts the execution after CALC\_F and SAVE, there is no extra data transfer for the intermediate results. The backup operation in Virtual-Instruction method only transfers the final results, which are also transfered to DDR with the SAVE instructions in the Layer-By-Layer method. Experiment results shows that, the data transfer time for the final results is much less than the calculation time (less than 20\%), in both Layer-By-Layer method and Virtual-Instruction method. Thus the latency to respond the interrupt request ($t_{latency}$) is mainly determined by the time of finishing current operation.
+
+
+\subsection {Latency Analysis}
+
+In this subsection, we quantitatively analyze the impact of interruptible position on interrupt respond latency. 
+As introduced in \Cref{sec:instrAcc}, each CALC  instruction processes the convolution according to the hardware parallelism with $Para_{height}$ lines from $ Para_{in} $ input channels to $ Para_{out}$ output channels. 
+We here note the computation of a CALC instruction an $instruction pulse$, or $pulse$.
+The compuataion time of each pulse is related to the hardware architecture and the width of the convolution layer. The larger the width, the larger the workload of a single calculation instruction, and thus the CALC instruction consumes more time. We note the time consumption of a pulse as a function of the width of the featuremaps, $t_{pulse}$:
+
+\begin{equation}
+	t_{pulse}(W) = t_{Calc\_Hardware} \times W
+\end{equation}
+
+$t_{Calc\_Hardware}$ indicates the time for hardware to produce the intermediate results of one pixel, which is defined by the hardware design and the clock frequency. $W$ is the width of the featuremaps, indicating the workload of the instruction.
+
+\Cref{fig:t1all} shows the worst case of waiting for finishing the current operation of the Layer-By-Layer interrupt method. The worst case is that the interrupt request occurs at the beginning of the layer. In this case, the accelerator will wait until finishing the whole layer. The calculation of the whole layer consists of $N_{pulse\_layer}$ successive CALC instructions. We note the worst time of waiting to finish the current layer, which is the total time of these pulses, as $t_{1\_layer}$.
+
+\begin{equation}
+	N_{pulse\_layer} = \frac{ Ch_{in} \times Ch_{out} \times H }{ (Para_{in} \times Para_{out} \times Para_{height}) } 
+\end{equation}
+
+\begin{equation}
+t_{1\_layer} = N_{pulse} \times t_{pulse}(W)
+\end{equation}
+
+$Ch_{in}$ and $Ch_{out}$ is the number of input channels and output channels. $H$ is the height of featuremaps.
+
+On the other hand, if the execution of the CNN accelerator can be interrupted after SAVE/CALC\_F instructions, the worst case of waiting for finishing the current operation is illustrated in \Cref{fig:t1after}. The calculation of the whole CalcBlob consists of $N_{pulse\_VI}$ successive CALC instructions. We note the worst waiting time in this case as $t_{1\_VI}$.
+
+\begin{equation}
+	N_{pulse\_VI} = \frac{ Ch_{in} \times Para_{out} \times Para_{height} }{ (Para_{in} \times Para_{out} \times Para_{height}) } 
+\end{equation}
+
+\begin{equation}
+t_{1\_VI} = N_{pulse\_VI} \times t_{pulse}(W)
+\end{equation}
+
+
+Because our Virtual-Instruction method (VI method) only interrupts the execution after CALC\_F and SAVE, there is no extra data transfer for the intermediate results. The backup operation in the VI method only transfers the final results, which are also transfered to DDR with the SAVE instructions in the Layer-By-Layer method. Experiment results show that the data transfer time for the final results is much less than the calculation time (less than 20\%), in both the Layer-By-Layer method and the VI method. Thus the latency to respond to the interrupt request ($t_{latency}$) is mainly determined by the time of finishing the current operation.
 
 As the interrupt request is unpredictable, we model the interrupt location as evenly distributed within each layer. Thus the average interrupt latency is $\bar{t}_{latency} $.
 
@@ -272,9 +250,10 @@ Compared with the Layer-By-Layer method, the latency of our method is reduced to
 	\end{split}
 \end{equation}
 
-$\bar{t}_{latency\_VI}$ and $\bar{t}_{latency\_VI}$ are the average interrupt latency of the Virtual-Instruction method and the Layer—By-Layer method. The effect of latency reduction of the VI method is related to the number of output channels ($Ch_{out}$) and featuremap height ($H$). The larger the featuremaps output channels and the height, the better  latency reduction result can be achieved.
+$\bar{t}_{latency\_VI}$ and $\bar{t}_{latency\_VI}$ are the average interrupt latency of the Virtual-Instruction method and the Layer-By-Layer method. The effect of latency reduction of the VI method is related to the number of output channels ($Ch_{out}$) and featuremap height ($H$). The larger the featuremaps output channels and the height, the better latency reduction result can be achieved.
 
 An example of a convolution layer with a typical size in CNN is given in \Cref{fig:t1example}. The parameters are labeled in the figures. The latency can be reduced to $1.6\%$.
+
 
 
 \subsection{Virtual Instruction ISA (VI-ISA) }
@@ -302,6 +281,27 @@ For Single Blob Save, no virtual SAVE is added. The high-priority network can be
 
 For Multiple Blob Save, virtual SAVE and LOAD instructions are generated after the CALC\_F of each CalcBlob. When the interrupt request occurs, the virtual SAVE instruction will be executed before the start of the high-priority network. Virtual LOAD instructions for data recovery are executed after the high-priority network. The subsequent original not-virtual SAVE instruction with the same SaveID as the CalcBlob will be modified to avoid duplicate output data transfer. The execution timeline is shown in \Cref{fig:singlesave}(e).
 
+
+\begin{figure}[t]
+	\centering
+    % \vspace{-0.1cm} 
+    % \setlength{\abovecaptionskip}{0cm} 
+    % \setlength{\belowcaptionskip}{-0.4cm} 
+	\includegraphics[width=0.99\linewidth]{fig/iau.pdf}
+	\caption{Hardware architecture of IAU. 
+	% The software on the CPU (PS side) communicates with IAU to access the CNN accelerator. IAU records the running state of each task. At runtime, IAU translates the input instruction sequence with virtual instructions to a normal sequence of instructions. IAU also modifies the normal SAVE instruction after interrupt occurs with the same SaveID, to avoid duplicate output data transfer. 
+	}
+	\label{fig:IAU}
+\end{figure}
+\begin{figure*}[t]
+	\centering
+    % \vspace{-0.1cm} 
+    % \setlength{\abovecaptionskip}{0cm} 
+    % \setlength{\belowcaptionskip}{-0.05cm} 
+	\includegraphics[width=0.99\linewidth]{fig/interexample.pdf}
+	\caption{ A simple example of our proposed virtual-instruction-based interrupt. }
+	\label{fig:interexample}
+\end{figure*}
 
 
 \subsection{ Instruction Arrangement Unit (IAU) }
